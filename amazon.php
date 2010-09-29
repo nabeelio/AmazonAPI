@@ -27,28 +27,77 @@
 *
 */
 
+class AmazonError extends Exception 
+{
+	public $message, $code, $detail;
+
+	public function __construct($message, $code = -1 , $detail = '')
+	{
+		$this->message = $message;
+		$this->code = $code;
+		$this->detail = $detail;
+
+		parent::__construct($message, $code, null);
+	}
+
+	public function getDetail() 
+	{
+		return $this->detail;
+	}
+}
+
 class AmazonProductLookup
 {
-	protected $AWS_KEY;
-	protected $SECRET_KEY;
+	protected $AWS_KEY = null;
+	protected $SECRET_KEY = null;
 
 	public $SERVICE_DOMAIN = 'webservices.amazon.com';
-	#public $SERVICE_DOMAIN = 'ecs.amazonaws.com';
+	public $REQUEST_URI = '/onca/xml';
+
+	protected $curl;
 
 	protected $use_json = false;
 	protected $json_style = 'http://xml2json-xslt.googlecode.com/svn/trunk/xml2json.xslt';
 
-	public $defaultArgs = array(
+	public $throw_exceptions = true;
+	public $last_error = null;
+	public $last_errordetail = 0;
+
+	public $default_args = array(
 		'Service' => 'AWSECommerceService',
 		'Version' => '2009-03-31'
-		);
+	);
 
 	public function __construct($AWS_KEY, $SECRET_KEY)
 	{
 		$this->AWS_KEY = $AWS_KEY;
 		$this->SECRET_KEY = $SECRET_KEY;
 
-		//@TODO: Ensure cURL exists
+		if(!function_exists('curl_init'))
+		{
+			$this->last_error = 'cURL must exist!';
+			return false;
+		}
+
+		$this->curl = curl_init();
+		curl_setopt($this->curl, CURLOPT_RETURNTRANSFER, 1); 
+		curl_setopt($this->curl, CURLOPT_TIMEOUT, 30); 
+		curl_setopt($this->curl, CURLOPT_SSL_VERIFYHOST, 0);
+	}
+
+	public function __destruct()
+	{
+		curl_close($this->curl);
+	}
+
+	public function getError() 
+	{
+		return $this->last_error;
+	}
+
+	public function getErrorDetail()
+	{
+		return $this->last_errordetail;
 	}
 
 	public function setJSON($bool)
@@ -66,15 +115,24 @@ class AmazonProductLookup
 
 	public function __call($requestName, $args)
 	{
-		$defaultArgs = array_merge($this->defaultArgs, array(
+		if($this->AWS_KEY === null || $this->SECRET_KEY === null)
+		{
+			$this->last_error = 'Invalid AWS Key and/or Secret Key';
+
+			if($this->throw_exceptions === true)
+				throw new AmazonError($this->last_error, -1);
+			else
+				return false;			
+		}
+
+		$args = array_merge($this->default_args, array(
 			'AWSAccessKeyId' => $this->AWS_KEY,
 			'AWSSecretAccessKey' => $this->SECRET_KEY,
 			'Operation' => $requestName,
 			'Timestamp' => gmdate("Y-m-d\TH:i:s\Z"),
-			)
+			), $args[0]
 		);
 
-		$args = array_merge($defaultArgs, $args[0]);
 		return $this->buildRequest($args);		
 	}
 
@@ -91,26 +149,74 @@ class AmazonProductLookup
 		}
 		
 		$query_string = implode("&", $query_string);
-		$signstring = "GET\n{$this->SERVICE_DOMAIN}\n/onca/xml\n".$query_string;
+		$signstring = "GET\n{$this->SERVICE_DOMAIN}\n{$this->REQUEST_URI}\n$query_string";
 		
 		$signature = base64_encode(hash_hmac('sha256', $signstring, $this->SECRET_KEY, true));
 		$signature = str_replace("%7E", "~", rawurlencode($signature));
 		
-		$request = "http://{$this->SERVICE_DOMAIN}/onca/xml?".$query_string."&Signature=".$signature;
+		$request = "http://{$this->SERVICE_DOMAIN}{$this->REQUEST_URI}?".$query_string."&Signature=".$signature;
 
-		return $this->wsCall($request);
+		# Make the request and load the XML
+		$response = simplexml_load_string($this->makeRequest($request));
+		
+		if(!$response)
+		{
+			$this->last_error = 'Invalid XML';
+			$this->last_errordetail = 'Invalid XML';
+
+			if($this->throw_exceptions === true)
+				throw new AmazonError($this->last_errordetail, -1, $this->last_error);
+			else
+				return false;
+		}
+
+		if(isset($response->Error))
+		{
+			$this->last_error = (string) $response->Error->Code;
+			$this->last_errordetail = (string) $response->Error->Message;
+
+			if($this->throw_exceptions === true)
+				throw new AmazonError($this->last_errordetail, -1, $this->last_error);
+			else
+				return false;
+		}
+
+		if(isset($response->Items->Request->Errors->Error))
+		{
+			$this->last_error = (string) $response->Items->Request->Errors->Error->Code;
+			$this->last_errordetail = (string) $response->Items->Request->Errors->Error->Message;
+
+			if($this->throw_exceptions === true)
+				throw new AmazonError($this->last_errordetail, -1, $this->last_error);
+			else
+				return false;
+		}
+
+		# Finally good
+		return $response;
 	}
 
-	protected function wsCall($url)
+	/**
+	 * Make a request via cURL to the web service. Can
+	 * be overridden to use something else (file_get_contents(), maybe)
+	 * in a child class
+	 * 
+	 * @param string $url The URL to request
+	 * @return Returns the raw data from Amazon
+	 */
+	protected function makeRequest($url)
 	{
-		$curl = curl_init();
-		curl_setopt($curl, CURLOPT_URL, $url); 
-		curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1); 
-		curl_setopt($curl, CURLOPT_TIMEOUT, 30); 
-		curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, 0);
-
 		// @TODO: Error handling
-		$response = curl_exec($curl);
+		curl_setopt($this->curl, CURLOPT_URL, $url); 
+		$response = curl_exec($this->curl);
+
+		if($response === false)
+		{
+			if($this->throw_exceptions === true)
+			{
+				throw new Exception ('');
+			}
+		}
 
 		return $response;
 	}

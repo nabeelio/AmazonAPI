@@ -19,9 +19,50 @@ any parameters to it in an array.
 Usage:
 --------
 
-$amz = new AmazonProductLookup('YOUR AWS KEY', 'YOUR SECRET KEY');
-$results = $amz->ItemSearch(array('SearchIndex'=>'Apparel', 'Keywords' => 'Shirt'));
+To use this class, include the file, and then initialize the class using your
+Amazon Key and Secret Key. They can both be obtained from Amazon at this page:
+
+http://aws.amazon.com/   Account -> Security Credentials
+
+	include 'amazon.php';
+	$amz = new AmazonProductLookup('YOUR AWS KEY', 'YOUR SECRET KEY');
+	$results = $amz->ItemSearch(array('SearchIndex'=>'Apparel', 'Keywords' => 'Shirt'));
 
 $results is a SimpleXML object. You can also return a JSON string by calling:
 
-$amz->setJSON(true);
+	$amz->setJSON(true);
+
+
+Error Handling:
+-------
+
+You can use exceptions to handle errors. When Exceptions are throw, the code is always -1.
+The error message is the short-hand code send by Amazon, and an additional function called getDetail()
+is available to show the detailed error message sent by Amazon:
+
+In this example, I removed the 'Keywords' Parameter:
+
+	try {
+		$results = $amz->ItemSearch(array('SearchIndex'=>'Apparel', /*'Keywords' => 'Shirt'*/));
+	} catch (AmazonError $e) {
+		echo "Exception: ".$e->getMessage();
+	}
+
+The Exception thrown in:
+
+	Exception: AWS.MinimumParameterRequirement
+
+And calling $e->getDetail() shows;
+	
+	Exception: Your request should have atleast 1 of the following parameters:
+	'Keywords','Title','Power','BrowseNode','Artist','Author','Actor','Director',
+	'AudienceRating','Manufacturer','MusicLabel','Composer','Publisher','Brand',
+	'Conductor','Orchestra','TextStream','Cuisine','City','Neighborhood'.
+
+If you disable exceptions, using $aws->throw_exceptions = false, the function will return
+false on an error, and you can use:
+
+	$aws->getError();
+	$aws->getErrorDetail();
+
+To return the last error codes
