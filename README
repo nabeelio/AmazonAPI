@@ -28,10 +28,7 @@ http://aws.amazon.com/   Account -> Security Credentials
 	$amz = new AmazonProductLookup('YOUR AWS KEY', 'YOUR SECRET KEY');
 	$results = $amz->ItemSearch(array('SearchIndex'=>'Apparel', 'Keywords' => 'Shirt'));
 
-$results is a SimpleXML object. You can also return a JSON string by calling:
-
-	$amz->setJSON(true);
-
+$results is a SimpleXML object. 
 
 Error Handling:
 -------
