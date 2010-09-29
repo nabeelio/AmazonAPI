@@ -90,6 +90,11 @@ class AmazonProductLookup
 		curl_close($this->curl);
 	}
 
+	public function addArgument($name, $value)
+	{
+		$this->default_args[$name] = $value;
+	}
+
 	public function getError() 
 	{
 		return $this->last_error;
@@ -118,9 +123,10 @@ class AmazonProductLookup
 		if($this->AWS_KEY === null || $this->SECRET_KEY === null)
 		{
 			$this->last_error = 'Invalid AWS Key and/or Secret Key';
+			$this->last_errordetail = $this->last_error;
 
 			if($this->throw_exceptions === true)
-				throw new AmazonError($this->last_error, -1);
+				throw new AmazonError($this->last_error, -1, $this->last_errordetail);
 			else
 				return false;			
 		}
@@ -149,8 +155,9 @@ class AmazonProductLookup
 		}
 		
 		$query_string = implode("&", $query_string);
+
+		# Sign the request and get the HMAC signature code
 		$signstring = "GET\n{$this->SERVICE_DOMAIN}\n{$this->REQUEST_URI}\n$query_string";
-		
 		$signature = base64_encode(hash_hmac('sha256', $signstring, $this->SECRET_KEY, true));
 		$signature = str_replace("%7E", "~", rawurlencode($signature));
 		
@@ -162,10 +169,10 @@ class AmazonProductLookup
 		if(!$response)
 		{
 			$this->last_error = 'Invalid XML';
-			$this->last_errordetail = 'Invalid XML';
+			$this->last_errordetail = $this->last_error;
 
 			if($this->throw_exceptions === true)
-				throw new AmazonError($this->last_errordetail, -1, $this->last_error);
+				throw new AmazonError($this->last_error, -1, $this->last_errordetail);
 			else
 				return false;
 		}
@@ -176,7 +183,7 @@ class AmazonProductLookup
 			$this->last_errordetail = (string) $response->Error->Message;
 
 			if($this->throw_exceptions === true)
-				throw new AmazonError($this->last_errordetail, -1, $this->last_error);
+				throw new AmazonError($this->last_error, -1, $this->last_errordetail);
 			else
 				return false;
 		}
@@ -187,7 +194,7 @@ class AmazonProductLookup
 			$this->last_errordetail = (string) $response->Items->Request->Errors->Error->Message;
 
 			if($this->throw_exceptions === true)
-				throw new AmazonError($this->last_errordetail, -1, $this->last_error);
+				throw new AmazonError($this->last_error, -1, $this->last_errordetail);
 			else
 				return false;
 		}
