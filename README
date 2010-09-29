@@ -1,0 +1,27 @@
+
+Amazon API
+By Nabeel Shahzad (http://github.com/nshahzad)
+License: MIT
+
+--------
+
+PHP 5.2+ API for interacting with Amazon's API. Very basic, and designed
+to work dynamically with Amazon's API, so any updates Amazon does should just work
+since the function is dynamically generated using PHP's __call() feature.
+
+The Amazon API list is here:
+
+http://docs.amazonwebservices.com/AWSECommerceService/2010-09-01/DG/CHAP_OperationListAlphabetical.html
+
+For instance, ItemSearch, so you call the function ItemSearch(), and pass 
+any parameters to it in an array.
+
+Usage:
+--------
+
+$amz = new AmazonProductLookup('YOUR AWS KEY', 'YOUR SECRET KEY');
+$results = $amz->ItemSearch(array('SearchIndex'=>'Apparel', 'Keywords' => 'Shirt'));
+
+$results is a SimpleXML object. You can also return a JSON string by calling:
+
+$amz->setJSON(true);
