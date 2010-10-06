@@ -50,28 +50,43 @@ class AmazonProductLookup
 {
 	protected $AWS_KEY = null;
 	protected $SECRET_KEY = null;
+	protected $LOCALE = 'US';
 
-	public $SERVICE_DOMAIN = 'webservices.amazon.com';
+	public $USE_SSL = false;
+	public $SERVICE_DOMAIN = 'webservices.amazon.';
 	public $REQUEST_URI = '/onca/xml';
-
+	
 	protected $curl;
 
-	protected $use_json = false;
+	protected $USE_JSON = false;
 	protected $json_style = 'http://xml2json-xslt.googlecode.com/svn/trunk/xml2json.xslt';
 
-	public $throw_exceptions = true;
 	public $last_error = null;
 	public $last_errordetail = 0;
+	public $throw_exceptions = true;
 
 	public $default_args = array(
 		'Service' => 'AWSECommerceService',
 		'Version' => '2009-03-31'
 	);
 
-	public function __construct($AWS_KEY, $SECRET_KEY)
+	protected $locales = array(
+		'CA' => 'ca',
+		'DE' => 'de',
+		'FR' => 'fr',
+		'JP' => 'jp',
+		'UK' => 'co.uk',
+		'US' => 'com',
+	);
+
+	public function __construct($AWS_KEY, $SECRET_KEY, $locale = 'US')
 	{
 		$this->AWS_KEY = $AWS_KEY;
 		$this->SECRET_KEY = $SECRET_KEY;
+		$this->LOCALE = strtoupper($locale);
+
+		# Build the full URL based on the locale passed in
+		$this->SERVICE_DOMAIN = $this->SERVICE_DOMAIN.$this->locales[$this->LOCALE];
 
 		if(!function_exists('curl_init'))
 		{
@@ -105,18 +120,23 @@ class AmazonProductLookup
 		return $this->last_errordetail;
 	}
 
-	public function setJSON($bool)
+	public function setSSL($bool)
 	{
-		$this->use_json = $bool;
-		if($this->use_json === false)
+		$this->USE_SSL = $bool;
+	}
+
+	/*public function setJSON($bool)
+	{
+		$this->USE_JSON = $bool;
+		if($this->USE_JSON === false)
 		{
-			unset($this->defaultArgs['Style']);
+			#unset($this->defaultArgs['Style']);
 		}
 		else
 		{
-			$this->defaultArgs['Style'] = $this->json_style;
+			#$this->defaultArgs['Style'] = $this->json_style;
 		}
-	}
+	}*/
 
 	public function __call($requestName, $args)
 	{
@@ -147,21 +167,29 @@ class AmazonProductLookup
 		ksort($params, SORT_STRING);
 		
 		$query_string = array();
-		
-		foreach ($params as $key => $value)
+		foreach ($params as $key => $value) 
 		{
 			$value = str_replace("%7E", "~", rawurlencode($value));
 			$query_string[] = trim($key)."=".trim($value);
 		}
 		
 		$query_string = implode("&", $query_string);
-
+		
 		# Sign the request and get the HMAC signature code
 		$signstring = "GET\n{$this->SERVICE_DOMAIN}\n{$this->REQUEST_URI}\n$query_string";
 		$signature = base64_encode(hash_hmac('sha256', $signstring, $this->SECRET_KEY, true));
 		$signature = str_replace("%7E", "~", rawurlencode($signature));
 		
-		$request = "http://{$this->SERVICE_DOMAIN}{$this->REQUEST_URI}?".$query_string."&Signature=".$signature;
+		if($this->USE_SSL === true)
+		{
+			$prefix = 'https://';
+		}
+		else
+		{
+			$prefix = 'http://';
+		}
+
+		$request = "{$prefix}{$this->SERVICE_DOMAIN}{$this->REQUEST_URI}?".$query_string."&Signature=".$signature;
 
 		# Make the request and load the XML
 		$response = simplexml_load_string($this->makeRequest($request));

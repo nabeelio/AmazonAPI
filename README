@@ -25,10 +25,32 @@ Amazon Key and Secret Key. They can both be obtained from Amazon at this page:
 http://aws.amazon.com/   Account -> Security Credentials
 
 	include 'amazon.php';
-	$amz = new AmazonProductLookup('YOUR AWS KEY', 'YOUR SECRET KEY');
-	$results = $amz->ItemSearch(array('SearchIndex'=>'Apparel', 'Keywords' => 'Shirt'));
+	$amz = new AmazonProductLookup('YOUR AWS KEY', 'YOUR SECRET KEY', 'LOCALE (default = US)');
 
-$results is a SimpleXML object. 
+There are three parameters:
+
+  * Your AWS Key
+  * Your AWS Secret ID
+  * An optional locale, default is "US"
+
+
+That's all you need to do to initalize. Here's an example of an ItemSearch operation:
+http://docs.amazonwebservices.com/AWSEcommerceService/4-0/ApiReference/ItemSearchOperation.html
+
+	$results = $amz->ItemSearch(array(
+		'SearchIndex'=>'Apparel', 
+		'Keywords' => 'Shirt'
+		)
+	);
+
+$results is a SimpleXML object. An example of an ItemLookup:
+http://docs.amazonwebservices.com/AWSEcommerceService/4-0/ApiReference/ItemLookupOperation.html
+
+	$results = $amz->ItemLookup(array(
+		'ItemId' => $isbn,
+		'ReponseGroup' => 'Small'
+		)
+	);
 
 Error Handling:
 -------
