@@ -27,12 +27,10 @@
 *
 */
 
-class AmazonError extends Exception 
-{
+class AmazonError extends Exception  {
 	public $message, $code, $detail;
 
-	public function __construct($message, $code = -1 , $detail = '')
-	{
+	public function __construct($message, $code = -1 , $detail = '') {
 		$this->message = $message;
 		$this->code = $code;
 		$this->detail = $detail;
@@ -40,14 +38,13 @@ class AmazonError extends Exception
 		parent::__construct($message, $code, null);
 	}
 
-	public function getDetail() 
-	{
+	public function getDetail() {
 		return $this->detail;
 	}
 }
 
-class AmazonProductLookup
-{
+class AmazonProductLookup {
+	
 	protected $AWS_KEY = null;
 	protected $SECRET_KEY = null;
 	protected $LOCALE = 'US';
@@ -79,8 +76,7 @@ class AmazonProductLookup
 		'US' => 'com',
 	);
 
-	public function __construct($AWS_KEY, $SECRET_KEY, $locale = 'US')
-	{
+	public function __construct($AWS_KEY, $SECRET_KEY, $locale = 'US') {
 		$this->AWS_KEY = $AWS_KEY;
 		$this->SECRET_KEY = $SECRET_KEY;
 		$this->LOCALE = strtoupper($locale);
@@ -88,8 +84,7 @@ class AmazonProductLookup
 		# Build the full URL based on the locale passed in
 		$this->SERVICE_DOMAIN = $this->SERVICE_DOMAIN.$this->locales[$this->LOCALE];
 
-		if(!function_exists('curl_init'))
-		{
+		if(!function_exists('curl_init')) {
 			$this->last_error = 'cURL must exist!';
 			return false;
 		}
@@ -100,28 +95,23 @@ class AmazonProductLookup
 		curl_setopt($this->curl, CURLOPT_SSL_VERIFYHOST, 0);
 	}
 
-	public function __destruct()
-	{
+	public function __destruct() {
 		curl_close($this->curl);
 	}
 
-	public function addArgument($name, $value)
-	{
+	public function addArgument($name, $value) {
 		$this->default_args[$name] = $value;
 	}
 
-	public function getError() 
-	{
+	public function getError() {
 		return $this->last_error;
 	}
 
-	public function getErrorDetail()
-	{
+	public function getErrorDetail() {
 		return $this->last_errordetail;
 	}
 
-	public function setSSL($bool)
-	{
+	public function setSSL($bool) {
 		$this->USE_SSL = $bool;
 	}
 
@@ -138,17 +128,17 @@ class AmazonProductLookup
 		}
 	}*/
 
-	public function __call($requestName, $args)
-	{
-		if($this->AWS_KEY === null || $this->SECRET_KEY === null)
-		{
+	public function __call($requestName, $args) {
+		
+		if($this->AWS_KEY === null || $this->SECRET_KEY === null) {
 			$this->last_error = 'Invalid AWS Key and/or Secret Key';
 			$this->last_errordetail = $this->last_error;
 
-			if($this->throw_exceptions === true)
+			if($this->throw_exceptions === true) {
 				throw new AmazonError($this->last_error, -1, $this->last_errordetail);
-			else
+			} else {
 				return false;			
+			}
 		}
 
 		$args = array_merge($this->default_args, array(
@@ -162,13 +152,12 @@ class AmazonProductLookup
 		return $this->buildRequest($args);		
 	}
 
-	public function buildRequest($params)
-	{
+	public function buildRequest($params) {
+		
 		ksort($params, SORT_STRING);
 		
 		$query_string = array();
-		foreach ($params as $key => $value) 
-		{
+		foreach ($params as $key => $value)  {
 			$value = str_replace("%7E", "~", rawurlencode($value));
 			$query_string[] = trim($key)."=".trim($value);
 		}
@@ -180,12 +169,9 @@ class AmazonProductLookup
 		$signature = base64_encode(hash_hmac('sha256', $signstring, $this->SECRET_KEY, true));
 		$signature = str_replace("%7E", "~", rawurlencode($signature));
 		
-		if($this->USE_SSL === true)
-		{
+		if($this->USE_SSL === true) {
 			$prefix = 'https://';
-		}
-		else
-		{
+		} else {
 			$prefix = 'http://';
 		}
 
@@ -194,37 +180,42 @@ class AmazonProductLookup
 		# Make the request and load the XML
 		$response = simplexml_load_string($this->makeRequest($request));
 		
-		if(!$response)
-		{
+		if(!$response) {
+			
 			$this->last_error = 'Invalid XML';
 			$this->last_errordetail = $this->last_error;
 
-			if($this->throw_exceptions === true)
+			if($this->throw_exceptions === true) {
 				throw new AmazonError($this->last_error, -1, $this->last_errordetail);
-			else
+			} else {
 				return false;
+			}
+				
 		}
 
-		if(isset($response->Error))
-		{
+		if(isset($response->Error)) {
+			
 			$this->last_error = (string) $response->Error->Code;
 			$this->last_errordetail = (string) $response->Error->Message;
 
-			if($this->throw_exceptions === true)
+			if($this->throw_exceptions === true) {
 				throw new AmazonError($this->last_error, -1, $this->last_errordetail);
-			else
+			} else {
 				return false;
+			}
+				
 		}
 
-		if(isset($response->Items->Request->Errors->Error))
-		{
+		if(isset($response->Items->Request->Errors->Error)) {
+			
 			$this->last_error = (string) $response->Items->Request->Errors->Error->Code;
 			$this->last_errordetail = (string) $response->Items->Request->Errors->Error->Message;
 
-			if($this->throw_exceptions === true)
+			if($this->throw_exceptions === true) {
 				throw new AmazonError($this->last_error, -1, $this->last_errordetail);
-			else
-				return false;
+			} else {
+				return false
+			}
 		}
 
 		# Finally good
@@ -239,16 +230,14 @@ class AmazonProductLookup
 	 * @param string $url The URL to request
 	 * @return Returns the raw data from Amazon
 	 */
-	protected function makeRequest($url)
-	{
+	protected function makeRequest($url) {
+		
 		// @TODO: Error handling
 		curl_setopt($this->curl, CURLOPT_URL, $url); 
 		$response = curl_exec($this->curl);
 
-		if($response === false)
-		{
-			if($this->throw_exceptions === true)
-			{
+		if($response === false) {
+			if($this->throw_exceptions === true) {
 				throw new Exception ('');
 			}
 		}
