@@ -214,7 +214,7 @@ class AmazonProductLookup {
 			if($this->throw_exceptions === true) {
 				throw new AmazonError($this->last_error, -1, $this->last_errordetail);
 			} else {
-				return false
+				return false;
 			}
 		}
 
