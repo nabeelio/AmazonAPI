@@ -34,7 +34,7 @@ There are three parameters:
 
 
 That's all you need to do to initalize. Here's an example of an ItemSearch operation:
-http://docs.amazonwebservices.com/AWSEcommerceService/4-0/ApiReference/ItemSearchOperation.html
+http://docs.aws.amazon.com/AWSECommerceService/latest/DG/ItemSearch.html
 
 	$results = $amz->ItemSearch(array(
 		'SearchIndex'=>'Apparel', 
@@ -43,7 +43,7 @@ http://docs.amazonwebservices.com/AWSEcommerceService/4-0/ApiReference/ItemSearc
 	);
 
 $results is a SimpleXML object. An example of an ItemLookup:
-http://docs.amazonwebservices.com/AWSEcommerceService/4-0/ApiReference/ItemLookupOperation.html
+http://docs.aws.amazon.com/AWSECommerceService/latest/DG/ItemLookup.html
 
 	$results = $amz->ItemLookup(array(
 		'ItemId' => $isbn,
