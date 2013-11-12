@@ -1,4 +1,3 @@
-
 Amazon API
 By Nabeel Shahzad (http://github.com/nshahzad)
 License: MIT
@@ -11,7 +10,7 @@ since the function is dynamically generated using PHP's __call() feature.
 
 The Amazon API list is here:
 
-http://docs.amazonwebservices.com/AWSECommerceService/2010-09-01/DG/CHAP_OperationListAlphabetical.html
+http://docs.aws.amazon.com/AWSECommerceService/latest/DG/CHAP_OperationListAlphabetical.html
 
 For instance, ItemSearch, so you call the function ItemSearch(), and pass 
 any parameters to it in an array.
@@ -35,7 +34,7 @@ There are three parameters:
 
 
 That's all you need to do to initalize. Here's an example of an ItemSearch operation:
-http://docs.amazonwebservices.com/AWSEcommerceService/4-0/ApiReference/ItemSearchOperation.html
+http://docs.aws.amazon.com/AWSECommerceService/latest/DG/ItemSearch.html
 
 	$results = $amz->ItemSearch(array(
 		'SearchIndex'=>'Apparel', 
@@ -44,7 +43,7 @@ http://docs.amazonwebservices.com/AWSEcommerceService/4-0/ApiReference/ItemSearc
 	);
 
 $results is a SimpleXML object. An example of an ItemLookup:
-http://docs.amazonwebservices.com/AWSEcommerceService/4-0/ApiReference/ItemLookupOperation.html
+http://docs.aws.amazon.com/AWSECommerceService/latest/DG/ItemLookup.html
 
 	$results = $amz->ItemLookup(array(
 		'ItemId' => $isbn,
